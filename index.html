@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUWEB - Platform Belajar Interaktif Cerdas</title>
+    <!-- Memuat Tailwind CSS dan ikon Lucide -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* CSS Kustom dan Variabel Warna yang Lebih Cerah */
+        :root {
+            --bg-color: #f7f9fb; /* Background sangat muda */
+            --primary-color: #4f46e5; /* Biru Ungu Utama */
+            --secondary-color: #f59e0b; /* Kuning Cerah/Aksen */
+            --tertiary-color: #10b981; /* Hijau untuk Ujian */
+            --text-light: #ffffff;
+            --text-dark: #1f2937;
+            --locked-color: #9ca3af; /* Abu-abu Kunci */
+            --warning-color: #ef4444; /* Merah untuk Peringatan */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px; /* Sedikit lebih lebar */
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        /* Header Dinamis */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Navigasi Utama: Efek Menarik */
+        .nav-item {
+            background-color: var(--text-light);
+            border: 2px solid var(--primary-color);
+            color: var(--text-dark);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item:hover:not(.locked) {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 15px -3px rgba(79, 70, 229, 0.4);
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .nav-item.locked {
+            background-color: var(--locked-color);
+            border-color: var(--locked-color);
+            color: var(--text-light);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Modal/Pop-ups */
+        .modal-bg {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal-content-box {
+            background-color: var(--text-light);
+            animation: bounceIn 0.4s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.5); }
+            70% { opacity: 1; transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Timer Display */
+        #timer-display {
+            transition: background-color 0.5s;
+        }
+        
+        /* Accordion Styling (Materi Detail) */
+        .accordion-header {
+            background-color: #eef2ff; /* Warna latar belakang header accordion */
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+        .accordion-header:hover {
+            background-color: #e0e7ff;
+        }
+        .accordion-content {
+            padding: 16px;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.4s ease-out;
+        }
+        .accordion-item.active .accordion-content {
+            max-height: 1000px; /* Nilai besar agar konten bisa muat */
+        }
+
+        /* Gemini Chat Box */
+        .chat-container {
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e7ff;
+        }
+        .user-message {
+            background-color: #eef2ff;
+            color: var(--primary-color);
+            align-self: flex-end;
+            border-radius: 12px 12px 0 12px;
+        }
+        .gemini-message {
+            background-color: #fff;
+            border: 1px solid #f0f0f0;
+            color: var(--text-dark);
+            align-self: flex-start;
+            border-radius: 0 12px 12px 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header/Judul Aplikasi -->
+    <div class="header text-center py-5 text-3xl font-extrabold text-white rounded-xl shadow-lg mb-8">
+        <i data-lucide="graduation-cap" class="inline-block mr-2 w-7 h-7"></i>
+        EDUWEB <span class="text-secondary-color text-base font-medium block">Platform Belajar Cepat & Seru</span>
+    </div>
+    
+    <!-- 1. Halaman Beranda -->
+    <div id="home-page" class="mt-4">
+        <h3 class="text-xl font-bold mb-6 text-center" style="color: var(--text-dark);">Pilih Aktivitas Belajarmu Hari Ini</h3>
+        <div class="grid grid-cols-2 gap-5 md:gap-7">
+            <!-- Tombol Materi (Locked/Unlocked) -->
+            <button id="nav-materi" class="nav-item rounded-2xl p-6 md:p-8 text-lg font-semibold shadow-xl flex flex-col items-center justify-center" aria-controls="materi-popup">
+                <i data-lucide="book-open-text" class="w-8 h-8 mb-2"></i>
+                Materi
+            </button>
+            <!-- Tombol Visual (Locked/Unlocked) -->
+            <button id="nav-visual" class="nav-item rounded-2xl p-6 md:p-8 text-lg font-semibold shadow-xl flex flex-col items-center justify-center" aria-controls="visual-page">
+                <i data-lucide="image" class="w-8 h-8 mb-2"></i>
+                Visual
+            </button>
+            <!-- Tombol Ujian Harian -->
+            <button id="nav-ujian-harian" class="nav-item rounded-2xl p-6 md:p-8 text-lg font-semibold shadow-xl flex flex-col items-center justify-center hover:!bg-tertiary-color hover:shadow-green-400" onclick="showMessage('ujian-harian-page')" style="border-color: var(--tertiary-color);">
+                <i data-lucide="clipboard-list" class="w-8 h-8 mb-2"></i>
+                Ujian Harian
+            </button>
+            <!-- Tombol Ujian Bulanan -->
+            <button id="nav-ujian-bulanan" class="nav-item rounded-2xl p-6 md:p-8 text-lg font-semibold shadow-xl flex flex-col items-center justify-center hover:!bg-tertiary-color hover:shadow-green-400" onclick="showMessage('ujian-bulanan-page')" style="border-color: var(--tertiary-color);">
+                <i data-lucide="calendar-check" class="w-8 h-8 mb-2"></i>
+                Ujian Bulanan
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Pop-up Pilihan Mode Materi -->
+    <div id="materi-popup" class="modal-bg fixed inset-0 flex items-center justify-center hidden">
+        <div class="modal-content-box p-8 rounded-3xl text-center w-11/12 max-w-sm shadow-2xl">
+            <div class="text-2xl font-bold mb-6" style="color: var(--primary-color);">Mode Materi</div>
+            <p class="text-gray-600 mb-6">Pilih cara kamu belajar hari ini:</p>
+            <button class="w-full py-3 mb-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-lg hover:shadow-xl transition" style="background-color: var(--secondary-color);" onclick="showSubjectMenu('untimed')">
+                <i data-lucide="glasses" class="w-5 h-5 mr-2"></i> Membaca (Santai)
+            </button>
+            <button class="w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-lg hover:shadow-xl transition" style="background-color: var(--primary-color);" onclick="showSubjectMenu('timed')">
+                <i data-lucide="timer" class="w-5 h-5 mr-2"></i> Persiapan (10 Menit)
+            </button>
+            <button class="text-gray-500 mt-4 text-sm hover:text-gray-700" onclick="showMessage('home-page')">Batal</button>
+        </div>
+    </div>
+    
+    <!-- 2. Pop-up Peringatan Locked (WAKTU HABIS/Visual) -->
+    <div id="warning-popup" class="modal-bg fixed inset-0 flex items-center justify-center hidden">
+        <div class="modal-content-box p-8 rounded-3xl text-center w-11/12 max-w-sm shadow-2xl">
+            <i id="warning-icon" data-lucide="bell-ring" class="w-10 h-10 mx-auto mb-4" style="color: var(--warning-color);"></i>
+            <p id="warning-title" class="text-2xl font-extrabold mb-4" style="color: var(--warning-color);">WAKTUNYA BERAKHIR!</p>
+            <p id="warning-body" class="mb-6 text-gray-700">Akses ke Materi dan Visual telah dikunci. Silakan coba Ujian!</p>
+            <button class="w-full py-3 rounded-xl text-white font-semibold" style="background-color: var(--primary-color);" onclick="hideWarningPopup()">Oke, Saya Paham</button>
+        </div>
+    </div>
+
+    <!-- 2. Submenu Materi (Pilih Subjek) -->
+    <div id="materi-submenu" class="mt-4 hidden">
+        <button class="back-button text-sm flex items-center font-semibold text-gray-600 hover:text-primary-color mb-6" onclick="showMessage('home-page')">
+            <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> Kembali ke Menu Utama
+        </button>
+        
+        <div class="text-xl font-bold p-4 rounded-xl text-white text-center mb-6" style="background-color: var(--primary-color);">Pilih Mata Pelajaran</div>
+        
+        <div class="materi-list space-y-4">
+            <button class="w-full py-4 px-5 rounded-xl text-left bg-white shadow flex items-center justify-between transition duration-200 hover:shadow-md hover:bg-indigo-50" onclick="showMaterial('Geografi')">
+                <span class="flex items-center text-lg font-medium"><i data-lucide="globe" class="w-6 h-6 mr-3 text-tertiary-color"></i> Geografi</span>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+            </button>
+            <button class="w-full py-4 px-5 rounded-xl text-left bg-white shadow flex items-center justify-between transition duration-200 hover:shadow-md hover:bg-indigo-50" onclick="showMaterial('Sejarah')">
+                <span class="flex items-center text-lg font-medium"><i data-lucide="landmark" class="w-6 h-6 mr-3 text-secondary-color"></i> Sejarah</span>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+            </button>
+            <button class="w-full py-4 px-5 rounded-xl text-left bg-white shadow flex items-center justify-between transition duration-200 hover:shadow-md hover:bg-indigo-50" onclick="showMaterial('Fiqh')">
+                <span class="flex items-center text-lg font-medium"><i data-lucide="book-check" class="w-6 h-6 mr-3 text-primary-color"></i> Fiqh</span>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Halaman Ujian Harian -->
+    <div id="ujian-harian-page" class="mt-4 hidden">
+        <button class="back-button text-sm flex items-center font-semibold text-gray-600 hover:text-primary-color mb-6" onclick="showMessage('home-page')">
+            <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> Kembali
+        </button>
+        <div class="text-xl font-bold p-4 rounded-xl text-white text-center mb-6" style="background-color: var(--tertiary-color);">Ujian Harian</div>
+        <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+            <p class="mb-4 text-gray-700">Masukkan **Token Ujian** dari Gurumu untuk memulai:</p>
+            <input type="text" placeholder="Masukkan Token Ujian" class="p-3 mb-4 border border-gray-300 rounded-lg w-full max-w-sm focus:ring-2 focus:ring-tertiary-color focus:border-transparent text-center">
+            <button class="w-full py-3 rounded-xl text-white font-semibold shadow-md" style="background-color: var(--tertiary-color);">Mulai Ujian</button>
+        </div>
+    </div>
+    
+    <!-- Halaman Ujian Bulanan -->
+    <div id="ujian-bulanan-page" class="mt-4 hidden">
+        <button class="back-button text-sm flex items-center font-semibold text-gray-600 hover:text-primary-color mb-6" onclick="showMessage('home-page')">
+            <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> Kembali
+        </button>
+        <div class="text-xl font-bold p-4 rounded-xl text-white text-center mb-6" style="background-color: var(--tertiary-color);">Ujian Bulanan</div>
+        <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+            <p class="mb-4 text-gray-700">Masukkan **Token Ujian** dari Gurumu untuk memulai:</p>
+            <input type="text" placeholder="Masukkan Token Ujian" class="p-3 mb-4 border border-gray-300 rounded-lg w-full max-w-sm focus:ring-2 focus:ring-tertiary-color focus:border-transparent text-center">
+            <button class="w-full py-3 rounded-xl text-white font-semibold shadow-md" style="background-color: var(--tertiary-color);">Mulai Ujian</button>
+        </div>
+    </div>
+
+    <!-- 3. Halaman Materi Detail (Menggunakan Accordion) -->
+    <div id="materi-page" class="mt-4 hidden">
+        <button id="back-to-menu" class="back-button text-sm flex items-center font-semibold text-gray-600 hover:text-primary-color mb-6" onclick="showMessage('materi-submenu')">
+            <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> Kembali ke Menu Materi
+        </button>
+        
+        <!-- Timer/Badge Mode -->
+        <div id="timer-display" class="p-3 rounded-xl mb-6 text-center text-lg font-extrabold shadow-lg hidden flex items-center justify-center">
+            <i data-lucide="alarm-clock" class="w-5 h-5 mr-2"></i>
+        </div>
+        
+        <h2 id="materi-title" class="text-3xl font-extrabold mb-6 text-primary-color text-center"></h2>
+        
+        <!-- Fitur Gemini: Ringkas Materi -->
+        <div class="mb-6 p-4 rounded-xl bg-indigo-50 shadow">
+            <h3 class="text-xl font-bold mb-3 text-primary-color">Bantuan Belajar Cerdas</h3>
+            <button id="summarize-button" class="w-full py-2 mb-4 rounded-lg text-white font-semibold flex items-center justify-center transition hover:opacity-90 disabled:opacity-50" style="background-color: var(--secondary-color);" onclick="summarizeMaterial()" disabled>
+                <i data-lucide="sparkles" class="w-5 h-5 mr-2 fill-white stroke-secondary-color"></i> ✨ Ringkas Materi (Gemini)
+            </button>
+            <div id="summary-result" class="p-3 bg-white border border-gray-200 rounded-lg text-sm italic hidden"></div>
+
+            <div class="space-y-3 mt-4">
+                <p class="text-sm font-semibold text-gray-600">✨ Tanya Instan Gemini:</p>
+                <div class="chat-container p-3 space-y-3 rounded-xl mb-2" id="chat-result">
+                    <p class="gemini-message p-3 shadow-md">Hai! Ajukan pertanyaanmu tentang materi ini, dan saya akan bantu menjawab!</p>
+                </div>
+                <div class="flex space-x-2">
+                    <input type="text" id="chat-input" placeholder="Tanya tentang subjek ini..." class="p-3 border border-gray-300 rounded-lg flex-grow focus:ring-2 focus:ring-primary-color focus:border-transparent">
+                    <button id="chat-send-button" class="px-4 py-2 rounded-lg text-white font-semibold transition hover:bg-primary-color/90 disabled:opacity-50" style="background-color: var(--primary-color);" onclick="sendChat()" disabled>
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="materi-content" class="bg-white p-2 rounded-xl shadow-2xl space-y-2">
+            <!-- Konten materi dalam bentuk accordion akan diisi di sini oleh JS -->
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Konfigurasi API ---
+    // Pastikan API Key diisi dengan string kosong seperti yang diminta
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    // --- Variabel Global ---
+    let isTimedMode = false;
+    let isLocked = false;
+    let timerInterval;
+    let timeLeft = 600; // 10 menit (600 detik)
+    let clickCounter = 0;
+    const LOCK_TIMEOUT = 400; // Timeout untuk reset counter klik (0.4 detik)
+    let lastClickTime = 0;
+    let currentMaterialContent = ''; // Menyimpan konten materi yang aktif
+
+    // Daftar semua halaman/pop-up yang perlu di-toggle
+    const allElements = ['home-page', 'materi-popup', 'materi-submenu', 'materi-page', 'ujian-harian-page', 'ujian-bulanan-page', 'warning-popup'];
+
+    // Inisialisasi Lucide Icons
+    window.onload = () => {
+        lucide.createIcons();
+        updateLockStatus();
+        showMessage('home-page');
+        
+        // Setup Event Listeners
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('chat-send-button').click();
+            }
+        });
+    };
+    
+    // --- Fungsi Utilitas ---
+    // Fungsi untuk menampilkan/menyembunyikan halaman
+    function showMessage(id) {
+        allElements.forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const isTarget = elementId === id;
+                
+                if (element.classList.contains('modal-bg')) {
+                    element.classList.toggle('hidden', !isTarget);
+                    element.classList.toggle('flex', isTarget);
+                } else {
+                    element.classList.toggle('hidden', !isTarget);
+                    element.classList.toggle('block', isTarget);
+                }
+            }
+        });
+        
+        if (id === 'home-page') {
+            stopTimer(); // Pastikan timer berhenti saat kembali ke beranda
+            // Redraw icons after page transition
+            setTimeout(() => lucide.createIcons(), 50); 
+        }
+
+        // Khusus Materi Page: Update tombol Gemini
+        if (id === 'materi-page') {
+            const isContentAvailable = currentMaterialContent.trim().length > 0;
+            document.getElementById('summarize-button').disabled = !isContentAvailable;
+            document.getElementById('chat-send-button').disabled = !isContentAvailable;
+        }
+    }
+
+    function hideWarningPopup() {
+        showMessage('home-page'); 
+    }
+    
+    // --- Logika Penguncian Tombol (3-Klik) ---
+    function updateLockStatus() {
+        const materiBtn = document.getElementById('nav-materi');
+        const visualBtn = document.getElementById('nav-visual');
+
+        if (isLocked) {
+            materiBtn.classList.add('locked');
+            visualBtn.classList.add('locked');
+        } else {
+            materiBtn.classList.remove('locked');
+            visualBtn.classList.remove('locked');
+        }
+    }
+
+    function handleLockedClick(event) {
+        // Logika Visual: Hanya menampilkan pesan untuk saat ini
+        if (event.currentTarget.id === 'nav-visual' && !isLocked) {
+             // Mengganti alert() dengan pop-up custom sederhana
+            document.getElementById('warning-icon').setAttribute('data-lucide', 'image-off');
+            document.getElementById('warning-title').textContent = 'FITUR BELUM TERSEDIA';
+            document.getElementById('warning-body').textContent = 'Fitur Visual akan segera hadir. Fokus ke Materi dulu, ya!';
+            lucide.createIcons();
+            showMessage('warning-popup');
+            return;
+        }
+
+        if (!isLocked) {
+            if (event.currentTarget.id === 'nav-materi') {
+                showMessage('materi-popup');
+            }
+            return;
+        }
+
+        // Logika 3-klik beruntun jika terkunci
+        const currentTime = new Date().getTime();
+
+        if (currentTime - lastClickTime > LOCK_TIMEOUT) {
+            clickCounter = 1;
+        } else {
+            clickCounter++;
+        }
+
+        lastClickTime = currentTime;
+
+        if (clickCounter >= 3) {
+            // Reset text peringatan ke default
+            document.getElementById('warning-icon').setAttribute('data-lucide', 'bell-ring');
+            document.getElementById('warning-title').textContent = 'WAKTUNYA BERAKHIR!';
+            document.getElementById('warning-body').textContent = 'Akses ke Materi dan Visual telah dikunci. Silakan coba Ujian!';
+            lucide.createIcons();
+            showMessage('warning-popup'); 
+            clickCounter = 0;
+        }
+    }
+
+    document.getElementById('nav-materi').addEventListener('click', handleLockedClick);
+    document.getElementById('nav-visual').addEventListener('click', handleLockedClick);
+
+    // --- Logika Timer (Mode Persiapan) ---
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        
+        timeLeft = 600; // Reset ke 10 menit
+        const timerDisplay = document.getElementById('timer-display');
+        timerDisplay.classList.remove('hidden');
+        timerDisplay.style.backgroundColor = 'var(--tertiary-color)'; // Hijau awal
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+            
+            timerDisplay.innerHTML = `<i data-lucide="alarm-clock" class="w-5 h-5 mr-2"></i> Waktu Tersisa: ${minutes}:${seconds}`;
+            lucide.createIcons();
+
+            // Ubah warna timer saat waktu menipis
+            if (timeLeft <= 120) { // 2 menit terakhir
+                timerDisplay.style.backgroundColor = '#facc15'; // Kuning
+            }
+            if (timeLeft <= 30) { // 30 detik terakhir
+                timerDisplay.style.backgroundColor = 'var(--warning-color)'; // Merah
+            }
+
+            if (timeLeft <= 0) {
+                stopTimer();
+                isLocked = true;
+                updateLockStatus();
+                showMessage('home-page'); 
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        document.getElementById('timer-display').classList.add('hidden');
+    }
+
+    // --- Logika Navigasi Materi ---
+    function showSubjectMenu(mode) {
+        showMessage('materi-submenu');
+        isTimedMode = mode === 'timed';
+    }
+
+    function showMaterial(subject) {
+        document.getElementById('materi-title').textContent = `Materi: ${subject.toUpperCase()}`;
+        
+        // Dapatkan konten penuh
+        const materialData = getMaterialData(subject);
+        currentMaterialContent = Object.values(materialData).join('\n\n');
+
+        // Render konten ke accordion
+        document.getElementById('materi-content').innerHTML = generateAccordionContent(materialData);
+        
+        // Reset chat dan summary
+        document.getElementById('summary-result').innerHTML = '';
+        document.getElementById('summary-result').classList.add('hidden');
+        document.getElementById('chat-result').innerHTML = '<p class="gemini-message p-3 shadow-md">Hai! Ajukan pertanyaanmu tentang materi ini, dan saya akan bantu menjawab!</p>';
+        document.getElementById('chat-input').value = '';
+        
+        showMessage('materi-page');
+
+        if (isTimedMode) {
+            startTimer();
+            document.getElementById('back-to-menu').classList.add('hidden'); 
+        } else {
+            stopTimer(); 
+            document.getElementById('back-to-menu').classList.remove('hidden'); 
+        }
+        
+        initAccordion();
+        // Aktifkan tombol Gemini setelah materi dimuat
+        const isContentAvailable = currentMaterialContent.trim().length > 0;
+        document.getElementById('summarize-button').disabled = !isContentAvailable;
+        document.getElementById('chat-send-button').disabled = !isContentAvailable;
+    }
+    
+    // --- Logika Accordion (Interaktif) ---
+    function initAccordion() {
+        const headers = document.querySelectorAll('.accordion-header');
+        headers.forEach(header => {
+            header.onclick = function() {
+                const item = this.closest('.accordion-item');
+                const content = item.querySelector('.accordion-content');
+                
+                // Toggle kelas 'active'
+                item.classList.toggle('active');
+                
+                // Atur ikon
+                const icon = this.querySelector('[data-lucide="chevron-down"]');
+                if (item.classList.contains('active')) {
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            };
+        });
+    }
+
+    // --- Pembuatan Konten dengan Accordion ---
+    function generateAccordionContent(contentData) {
+        let html = '';
+
+        for (const [title, body] of Object.entries(contentData)) {
+            // Generate HTML untuk setiap item accordion
+            html += `
+                <div class="accordion-item rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div class="accordion-header p-4 flex justify-between items-center text-lg font-semibold text-primary-color">
+                        <span>${title}</span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
+                    </div>
+                    <div class="accordion-content bg-gray-50 border-t border-gray-200 text-gray-700">
+                        ${body}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Re-run Lucide after adding new content
+        setTimeout(() => lucide.createIcons(), 100); 
+
+        return html;
+    }
+
+
+    // --- Konten Materi Penuh (Data Hardcoded) ---
+    function getMaterialData(subject) {
+        const data = {};
+        
+        if (subject === 'Geografi') {
+            data['a. Apa Itu Sains?'] = `
+                <p>Sains, atau Ilmu Pengetahuan Alam (IPA), ada di mana-mana! Mulai dari topik air, sistem tubuh manusia, hingga energi, bunyi, cahaya, listrik, tumbuhan, dan tata surya. Sains adalah ilmu yang sangat luas dan mencakup semua fenomena di sekitar kita.</p>
+                <div class="p-3 mt-4 rounded-lg bg-yellow-100 border-l-4 border-secondary-color text-sm">
+                    <p class="font-semibold">Fakta Menarik:</p>
+                    <p>Fisika adalah ilmu tentang gejala alam dan perpindahan energi. Astronomi mempelajari planet, bintang, dan alam semesta. Sementara Geologi fokus pada Bumi dan perubahannya (Gunung Berapi, Gempa Bumi).</p>
+                </div>
+                `;
+            data['b. Cabang-cabang Ilmu Sains'] = `
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Fisika:</strong> Ilmu tentang gejala alam, perpindahan, dan energi. Contoh cabangnya: Mekanika (gerak), Elektronika (listrik/magnet), Optika Geometris (alat optik).</li>
+                    <li><strong>Astronomi:</strong> Ilmu tentang planet, bintang, alam semesta, termasuk Matahari dan gerhana, komet, dan asteroid. [Image of Tata Surya]</li>
+                    <li><strong>Geologi:</strong> Ilmu mengenai Bumi dan perubahannya. Contoh cabangnya: Vulkanologi (gunung berapi), Seismologi (gempa bumi), Palentologi (fosil).</li>
+                </ul>
+            `;
+            data['c. Mengenal Matahari Lebih Dekat'] = `
+                <p>Matahari adalah bintang yang luar biasa! Beberapa karakteristik utamanya:</p>
+                <ul class="list-disc pl-5 space-y-2 mt-2">
+                    <li><strong>Massa:</strong> 333.400 kali massa Bumi.</li>
+                    <li><strong>Diameter:</strong> 1.392.000 km (109 kali diameter Bumi).</li>
+                    <li><strong>Gravitasi:</strong> 28 kali gravitasi Bumi!</li>
+                </ul>
+                <p class="mt-4 italic text-sm text-gray-500">Gravitasinya yang besar menjaga planet-planet lain tetap pada orbitnya.</p>
+            `;
+            data['d. Peran Matahari dalam Kehidupan Manusia'] = `
+                <ul class="list-decimal pl-5 space-y-3">
+                    <li><strong>Bahan Bakar Fosil:</strong> Panas Matahari selama ribuan tahun membantu menciptakan bahan bakar fosil yang kita gunakan hari ini.</li>
+                    <li><strong>Kehangatan & Kesehatan:</strong> Sinar Matahari pagi (5-15 menit) dapat meningkatkan imunitas tubuh.</li>
+                    <li><strong>Penghangat Bumi:</strong> Sinar Matahari diserap Bumi, menciptakan suhu yang tepat untuk fotosintesis tumbuhan dan kelangsungan hidup.</li>
+                    <li><strong>Gravitasi Penjaga:</strong> Gaya gravitasinya menjaga kekokohan posisi Bumi dan planet-planet di orbit.</li>
+                    <li><strong>Siklus Air:</strong> Tanpa Matahari, tidak akan ada penguapan air di lautan yang menyebabkan hujan dan angin.</li>
+                </ul>
+            `;
+        } else if (subject === 'Sejarah') {
+            data['a. Sebelum Mengenal Tulisan (Praaksara)'] = `
+                <p>Masa praaksara adalah periode kehidupan manusia sebelum mengenal tulisan. Meskipun modern, beberapa alat praaksara (seperti cobek/alat penghalus bumbu dari batu) masih kita temukan. Periode ini jauh lebih lama daripada masa sejarah.</p>
+                <p class="mt-3"><strong>Istilah:</strong> Praaksara (sebelum aksara/tulisan) adalah istilah yang lebih tepat daripada prasejarah.</p>
+            `;
+            data['b. Terbentuknya Kepulauan Indonesia'] = `
+                <p>Pembentukan Bumi dijelaskan oleh <strong>Teori Dentuman Besar (Big Bang)</strong> dan dibagi menjadi periode geologis:</p>
+                <ol class="list-decimal pl-5 space-y-2 mt-2">
+                    <li>Azoikum</li>
+                    <li>Palaezoikum</li>
+                    <li>Mesozoikum</li>
+                    <li>Neozoikum</li>
+                </ol>
+                <p class="mt-3">Kepulauan Indonesia terletak di antara dua benua dan dua samudra, dan berada di atas <strong>tungku api (magma)</strong>. Wilayah kita adalah titik temu tiga lempeng tektonik yang sangat aktif (kegiatan tektonis).</p>
+            `;
+            data['c. Mengenal Manusia Purba (Situs Sangiran)'] = `
+                <p>Situs Manusia Purba <strong>Sangiran</strong> (Sragen & Karanganyar) telah ditetapkan UNESCO sebagai Warisan Budaya Dunia. Situs ini adalah kompleks situs manusia purba dari Kala Pleistosen terlengkap di Indonesia, bahkan di Asia.</p>
+                <p class="mt-3 font-semibold">Fakta Fosil:</p>
+                <p>Sangiran memberikan petunjuk keberadaan manusia sejak 150.000 tahun yang lalu. Penemuan fosil manusia purba banyak ditemukan di Pulau Jawa.</p>
+            `;
+            data['d. Asal Usul & Persebaran Nenek Moyang'] = `
+                <p>Studi akademis menunjukkan genetik manusia Indonesia adalah <strong>campuran</strong> dari dua atau lebih populasi moyang.</p>
+                <ul class="list-disc pl-5 space-y-2 mt-2">
+                    <li><strong>Melanesia:</strong> Sekelompok orang yang datang sekitar 60.000 tahun yang lalu.</li>
+                    <li><strong>Bahasa:</strong> Lebih dari 700 etnis dan 706 bahasa daerah, digolongkan sebagai penutur <strong>Austronesia</strong> dan <strong>non-Austronesia (Papua)</strong>.</li>
+                </ul>
+            `;
+            data['e. Corak Kehidupan Masa Praaksara'] = `
+                <p>Kehidupan awal masyarakat praaksara:</p>
+                <ul class="list-disc pl-5 space-y-2 mt-2">
+                    <li><strong>Pola Hidup:</strong> Berburu dan Meramu.</li>
+                    <li><strong>Tempat Tinggal:</strong> Nomaden (berpindah-pindah) tergantung ketersediaan makanan, sering di dekat sungai, danau, atau pantai.</li>
+                    <li><strong>Alat:</strong> Terbuat dari batu yang masih sederhana (berkembang pada masa Meganthropus dan Pithecanthropus).</li>
+                    <li><strong>Kepercayaan:</strong> Sistem kepercayaan nenek moyang (pemujaan roh) masih dapat kita temui hari ini.</li>
+                </ul>
+            `;
+            data['f. Perkembangan Teknologi'] = `
+                <p>Meskipun belum mengenal tulisan, manusia purba memiliki perkembangan teknologi yang signifikan, terutama dalam pembuatan alat dari batu, tulang, dan logam (pada periode selanjutnya) untuk membantu berburu, meramu, dan bertani. Teknologi ini berevolusi dari alat-alat sederhana (seperti kapak perimbas) hingga alat-alat yang lebih halus.</p>
+            `;
+
+        } else if (subject === 'Fiqh') {
+            data['BAB 1: THAHARAH (BERSUCI)'] = `
+                <p><strong>Definisi:</strong> Thaharah adalah bersuci, baik secara lahir (dari najis) maupun batin (dari hadas), agar sah melaksanakan ibadah seperti sholat, tawaf, dan membaca Al-Qur'an.</p>
+                <p><strong>Jenis Thaharah:</strong></p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Dari hadas (dengan wudhu, tayamum, atau mandi wajib).</li>
+                    <li>Dari najis (dengan mencuci bagian yang terkena).</li>
+                </ul>
+            `;
+            data['HADAS (Kecil dan Besar)'] = `
+                <p>Hadas adalah keadaan tidak suci yang menghalangi ibadah.</p>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div class="p-3 bg-red-50 rounded-lg">
+                        <p class="font-semibold text-red-600">Hadas Kecil</p>
+                        <p class="text-sm">Diangkat dengan <strong>wudhu</strong>. Contoh: keluar angin, tidur, menyentuh kemaluan.</p>
+                    </div>
+                    <div class="p-3 bg-red-100 rounded-lg">
+                        <p class="font-semibold text-red-700">Hadas Besar</p>
+                        <p class="text-sm">Diangkat dengan <strong>mandi wajib</strong>. Contoh: junub, haid, nifas, melahirkan.</p>
+                    </div>
+                </div>
+            `;
+            data['NAJIS (Mukhaffafah, Mutawassithah, Mughallazhah)'] = `
+                <p>Najis adalah kotoran yang membatalkan ibadah. Cara membersihkannya berbeda-beda:</p>
+                <ol class="list-decimal pl-5 space-y-2 mt-2">
+                    <li><strong>Mukhaffafah (Ringan):</strong> Air kencing bayi laki-laki (hanya minum ASI). Cara: dipercikkan air.</li>
+                    <li><strong>Mutawassithah (Sedang):</strong> Darah, nanah, kotoran manusia/hewan. Cara: dicuci hingga hilang warna, bau, dan rasa.</li>
+                    <li><strong>Mughallazhah (Berat):</strong> Anjing dan babi. Cara: dibasuh 7 kali, salah satunya dengan air bercampur tanah.</li>
+                </ol>
+            `;
+            data['BAB 2: SHOLAT FARDHU & SUNNAH'] = `
+                <p><strong>Pengertian Sholat:</strong> Serangkaian perkataan dan perbuatan yang diawali dengan takbiratul ihram dan diakhiri dengan salam, sebagai bentuk ibadah khusus kepada Allah.</p>
+                <h5 class="font-semibold mt-4 text-primary-color">Syarat Wajib Sholat</h5>
+                <p class="text-sm">Harus dipenuhi agar sholat diwajibkan: Islam, Baligh (dewasa), Berakal (tidak gila).</p>
+                <h5 class="font-semibold mt-2 text-primary-color">Syarat Sah Sholat</h5>
+                <p class="text-sm">Harus dipenuhi saat sholat agar sah: Suci dari hadas & najis, Menutup aurat, Masuk waktu sholat, Menghadap kiblat.</p>
+            `;
+            data['Sholat Sunnah & Keutamaannya'] = `
+                <p>Sholat sunnah hukumnya **sangat dianjurkan** (mendapat pahala besar jika dikerjakan, tidak berdosa jika ditinggalkan).</p>
+                <h5 class="font-semibold mt-4 text-primary-color">Derajat Sunnah</h5>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li><strong>Muakkad (Sangat Ditekankan):</strong> Rawatib, Witir, Idul Fitri/Adha, Tarawih.</li>
+                    <li><strong>Ghairu Muakkad (Tidak Terlalu Ditekankan):</strong> Dhuha, Tahiyatul Masjid, Istikharah, Hajat, Taubat.</li>
+                </ul>
+                <h5 class="font-semibold mt-2 text-primary-color">Keutamaan</h5>
+                <p class="text-sm">Melengkapi kekurangan sholat wajib, mendekatkan diri kepada Allah, menambah pahala, dan membersihkan hati.</p>
+            `;
+        }
+        
+        return data;
+    }
+
+
+    // --- Logika Interaksi Gemini API ---
+
+    // 1. Fungsi Umum untuk Panggilan API dengan Exponential Backoff
+    async function fetchGemini(payload, maxRetries = 5) {
+        let lastError = null;
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content?.parts?.[0]?.text) {
+                        return result.candidates[0].content.parts[0].text;
+                    }
+                    throw new Error('Respons Gemini tidak valid.');
+                }
+                
+                // Jika error 429 (Too Many Requests) atau 5xx, coba lagi
+                if (response.status === 429 || response.status >= 500) {
+                    lastError = `API Error Status ${response.status}: Retrying...`;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue; // Lanjutkan ke retry berikutnya
+                } else {
+                    // Jika error klien lain, hentikan
+                    throw new Error(`API Error Status ${response.status}: Gagal memproses permintaan.`);
+                }
+            } catch (error) {
+                lastError = error.message;
+                const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+        console.error('Gagal setelah beberapa kali percobaan:', lastError);
+        return `[ERROR: Gagal memuat respons dari Gemini setelah beberapa kali coba. Coba lagi. Detail: ${lastError}]`;
+    }
+
+    // 2. Fitur Ringkas Materi
+    async function summarizeMaterial() {
+        const resultDiv = document.getElementById('summary-result');
+        const summarizeButton = document.getElementById('summarize-button');
+        
+        if (!currentMaterialContent) {
+            resultDiv.textContent = 'Tidak ada materi yang dimuat untuk diringkas.';
+            resultDiv.classList.remove('hidden');
+            return;
+        }
+
+        summarizeButton.disabled = true;
+        summarizeButton.innerHTML = `<i data-lucide="loader" class="w-5 h-5 mr-2 animate-spin"></i> Sedang Meringkas...`;
+        lucide.createIcons();
+        resultDiv.textContent = 'Gemini sedang menyusun ringkasan...';
+        resultDiv.classList.remove('hidden');
+
+        const systemPrompt = "Anda adalah asisten pendidikan yang membantu siswa. Berikan ringkasan padat dan informatif (maksimal 3-4 kalimat) dalam Bahasa Indonesia dari teks materi yang diberikan.";
+        const userQuery = `Ringkas materi berikut: \n\n${currentMaterialContent}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            // Matikan grounding untuk meringkas teks yang sudah ada
+        };
+
+        const summaryText = await fetchGemini(payload);
+        
+        resultDiv.innerHTML = `<p class="font-semibold mb-1 text-primary-color">Ringkasan Cerdas:</p><p>${summaryText}</p>`;
+        
+        summarizeButton.disabled = false;
+        summarizeButton.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5 mr-2 fill-white stroke-secondary-color"></i> ✨ Ringkas Materi (Gemini)`;
+        lucide.createIcons();
+    }
+
+    // 3. Fitur Tanya Instan (Chatbot)
+    async function sendChat() {
+        const input = document.getElementById('chat-input');
+        const chatContainer = document.getElementById('chat-result');
+        const sendButton = document.getElementById('chat-send-button');
+        const userQuery = input.value.trim();
+
+        if (userQuery === '') return;
+
+        // Tampilkan pesan pengguna
+        const userHtml = `<p class="user-message p-3 shadow-md">${userQuery}</p>`;
+        chatContainer.innerHTML += userHtml;
+        chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll ke bawah
+
+        // Tampilkan loading state
+        const loadingId = 'loading-' + Date.now();
+        const loadingHtml = `<p id="${loadingId}" class="gemini-message p-3 shadow-md flex items-center"><i data-lucide="loader" class="w-4 h-4 mr-2 animate-spin"></i> Menunggu jawaban Gemini...</p>`;
+        chatContainer.innerHTML += loadingHtml;
+        lucide.createIcons();
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        sendButton.disabled = true;
+        input.disabled = true;
+        input.value = '';
+
+        const systemPrompt = "Anda adalah asisten belajar yang bersemangat dan ramah untuk siswa, bertindak seperti tutor yang berpengetahuan. Jawab semua pertanyaan dalam Bahasa Indonesia, usahakan jawaban singkat, jelas, dan lugas. Jawaban Anda harus relevan dengan materi Geografi/Sejarah/Fiqh.";
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            tools: [{ "google_search": {} }], // Aktifkan grounding untuk jawaban yang lebih kontekstual
+        };
+
+        const responseText = await fetchGemini(payload);
+
+        // Hapus loading state
+        document.getElementById(loadingId)?.remove();
+
+        // Tampilkan jawaban Gemini
+        const geminiHtml = `<p class="gemini-message p-3 shadow-md">${responseText}</p>`;
+        chatContainer.innerHTML += geminiHtml;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        sendButton.disabled = false;
+        input.disabled = false;
+        input.focus();
+    }
+    
+    // Inisialisasi Tampilan: Memastikan halaman Beranda ditampilkan saat pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        // Init happens in window.onload
+    });
+</script>
+
+</body>
+</html>
